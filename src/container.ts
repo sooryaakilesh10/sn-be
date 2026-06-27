@@ -17,6 +17,7 @@ import { BeatService } from "./application/services/beatService.js";
 import { FeedService } from "./application/services/feedService.js";
 import { SocialService } from "./application/services/socialService.js";
 import { UserService } from "./application/services/userService.js";
+import { RecommendationService } from "./application/services/recommendationService.js";
 import type { TokenSigner } from "./application/ports/tokenSigner.js";
 import type { RateLimiter } from "./domain/repositories/rateLimiter.js";
 
@@ -28,6 +29,7 @@ export interface Container {
   feed: FeedService;
   social: SocialService;
   users: UserService;
+  recommendations: RecommendationService;
   tokenSigner: TokenSigner;
   rateLimiter: RateLimiter;
 }
@@ -55,6 +57,7 @@ export function buildContainer(env: Env, config: AppConfig): Container {
   const feed = new FeedService(beatRepo, userRepo, socialRepo, cache, config.assetPublicBase);
   const social = new SocialService(socialRepo, beatRepo, userRepo, cache);
   const users = new UserService(userRepo, socialRepo);
+  const recommendations = new RecommendationService(socialRepo, userRepo);
 
-  return { auth, beats, feed, social, users, tokenSigner, rateLimiter };
+  return { auth, beats, feed, social, users, recommendations, tokenSigner, rateLimiter };
 }

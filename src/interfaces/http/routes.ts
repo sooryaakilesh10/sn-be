@@ -4,6 +4,7 @@ import { beatController } from "./controllers/beatController.js";
 import { feedController } from "./controllers/feedController.js";
 import { socialController } from "./controllers/socialController.js";
 import { userController } from "./controllers/userController.js";
+import { recommendationController } from "./controllers/recommendationController.js";
 import { json } from "./response.js";
 
 // Single source of truth for the HTTP surface. Built once and reused across
@@ -37,6 +38,9 @@ export function buildRouter(): Router {
 
   // --- Discover feed ---
   r.get("/api/feed", feedController.discover);
+
+  // --- Recommendations ---
+  r.get("/api/recommendations/users", recommendationController.users);
 
   // --- Users / social ---
   r.get("/api/users/:username", userController.profile);

@@ -41,6 +41,16 @@ export interface BeatRepository {
 
   listByUser(userId: string, cursor: string | null, limit: number): Promise<Beat[]>;
   listPublicFeed(query: FeedQuery): Promise<Beat[]>;
+  // Public beats authored by people the viewer follows ("Following" feed),
+  // newest first, keyset-paginated by id.
+  listFollowingFeed(
+    viewerId: string,
+    cursor: string | null,
+    limit: number,
+  ): Promise<Beat[]>;
+  // Genre -> interaction count for a viewer (their own beats + beats they liked),
+  // used to weight the personalized "For You" ranking.
+  viewerGenreWeights(viewerId: string): Promise<Record<string, number>>;
 
   incrementPlays(id: string): Promise<void>;
 }

@@ -16,4 +16,7 @@ export interface SocialRepository {
   followingAmong(followerId: string, candidateIds: string[]): Promise<Set<string>>;
   // Paginated list of users a given user follows.
   listFollowing(userId: string, cursor: string | null, limit: number): Promise<string[]>;
+  // Suggested users to follow: friends-of-friends (ranked by mutual follows)
+  // topped up with popular creators, excluding self + already-followed.
+  suggestedUserIds(viewerId: string, limit: number): Promise<string[]>;
 }

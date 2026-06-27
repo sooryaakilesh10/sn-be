@@ -64,6 +64,83 @@ export class FeedService {
     return { items, nextCursor: cached.nextCursor };
   }
 
+  // "Following" — public beats from people the viewer follows. Per-viewer, so
+  // it skips the shared cache.
+  async following(req: FeedRequest): Promise<Page<BeatView>> {
+    if (!req.viewerId) return { items: [], nextCursor: null };
+    const rows = await this.beats.listFollowingFeed(req.viewerId, req.cursor, req.limit + 1);
+    const page = buildPage(rows, req.limit, (b) => b.id);
+    const items = await this.hydrate(page.items, req.viewerId);
+    return { items, nextCursor: page.nextCursor };
+  }
+
+  // "For You" — a personalized ranking over a recent candidate pool. Blends
+  // friends, genre affinity, fresh engagement and recency (with a little
+  // exploration) so the feel is relevant AND newer creators still get reach.
+  async forYou(req: FeedRequest): Promise<Page<BeatView>> {
+    const pool = await this.loadShared({
+      sort: "recent",
+      genre: req.genre,
+      cursor: null,
+      limit: FORYOU_POOL,
+      viewerId: req.viewerId,
+    });
+
+    const viewerId = req.viewerId;
+    const authorIds = [...new Set(pool.beats.map((b) => b.userId))];
+    const followed = viewerId
+      ? await this.social.followingAmong(viewerId, authorIds)
+      : new Set<string>();
+    const liked = viewerId
+      ? await this.social.likedBeatIds(viewerId, pool.beats.map((b) => b.id))
+      : new Set<string>();
+    const genreWeights = viewerId ? await this.beats.viewerGenreWeights(viewerId) : {};
+    const maxGenre = Math.max(1, ...Object.values(genreWeights));
+
+    const authorMap = new Map(pool.authors.map((a) => [a.id, a]));
+    const ctx: ScoreCtx = { now: Date.now(), followed, liked, genreWeights, maxGenre };
+
+    const ranked = pool.beats
+      .filter((b) => authorMap.has(b.userId) && b.userId !== viewerId)
+      .map((b) => ({ beat: b, score: score(b, ctx) }))
+      .sort((a, z) => z.score - a.score)
+      .slice(0, req.limit);
+
+    const items = ranked.map(({ beat }) =>
+      presentBeat(beat, {
+        author: authorMap.get(beat.userId)!,
+        likedByViewer: liked.has(beat.id),
+        assetBase: this.assetBase,
+      }),
+    );
+    return { items, nextCursor: null };
+  }
+
+  // Hydrate a plain list of beats with authors + the viewer's like state.
+  private async hydrate(beats: Beat[], viewerId: string | null): Promise<BeatView[]> {
+    const authorIds = [...new Set(beats.map((b) => b.userId))];
+    const authorMap = await this.users.findManyByIds(authorIds);
+    const liked = viewerId
+      ? await this.social.likedBeatIds(viewerId, beats.map((b) => b.id))
+      : new Set<string>();
+    return beats.flatMap((beat) => {
+      const author = authorMap.get(beat.userId);
+      if (!author) return [];
+      return [
+        presentBeat(beat, {
+          author: {
+            id: author.id,
+            username: author.username,
+            displayName: author.displayName,
+            avatarUrl: author.avatarUrl,
+          },
+          likedByViewer: liked.has(beat.id),
+          assetBase: this.assetBase,
+        }),
+      ];
+    });
+  }
+
   // Returns the shared, viewer-independent slice of the feed, read-through KV.
   private async loadShared(req: FeedRequest): Promise<CachedFeed> {
     const generation = (await this.cache.get<number>(feedCacheTag)) ?? 0;
@@ -102,4 +179,28 @@ export class FeedService {
 // stable. We encode `likes:id` and the repository decodes it.
 function cursorFor(sort: FeedSort): (b: Beat) => string {
   return sort === "top" ? (b) => `${b.likesCount}:${b.id}` : (b) => b.id;
+}
+
+// How many recent public beats to consider as "For You" candidates.
+const FORYOU_POOL = 80;
+
+interface ScoreCtx {
+  now: number;
+  followed: Set<string>;          // author ids the viewer follows
+  liked: Set<string>;             // beat ids the viewer already liked
+  genreWeights: Record<string, number>;
+  maxGenre: number;
+}
+
+// Personalized relevance score for a beat. Higher = surfaced sooner.
+function score(beat: Beat, ctx: ScoreCtx): number {
+  const friend = ctx.followed.has(beat.userId) ? 3 : 0;            // friends first
+  const affinity = ctx.maxGenre > 0 ? (ctx.genreWeights[beat.genre] ?? 0) / ctx.maxGenre : 0;
+  const ageHours = Math.max(0, (ctx.now - beat.createdAt) / 3_600_000);
+  const recency = Math.exp(-ageHours / 72);                        // ~3-day decay
+  const engagement = Math.log1p(beat.likesCount * 3 + beat.playsCount);
+  const seenPenalty = ctx.liked.has(beat.id) ? -0.5 : 0;           // already engaged
+  const explore = Math.random() * 0.3;                             // give the long tail a chance
+  // Engagement counts more when fresh, so a new strong post outranks an old hit.
+  return friend + 2 * affinity + 1.2 * engagement * (0.4 + 0.6 * recency) + 2 * recency + explore + seenPenalty;
 }

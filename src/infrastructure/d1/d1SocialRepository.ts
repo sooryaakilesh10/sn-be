@@ -129,4 +129,51 @@ export class D1SocialRepository implements SocialRepository {
     const { results } = await stmt.all<{ followee_id: string }>();
     return results.map((r) => r.followee_id);
   }
+
+  async suggestedUserIds(viewerId: string, limit: number): Promise<string[]> {
+    // 1) Friends-of-friends: people followed by those the viewer follows,
+    //    ranked by how many mutual connections recommend them. This is the
+    //    "people your friends follow" signal.
+    const fof = await this.db
+      .prepare(
+        `SELECT f2.followee_id AS uid, COUNT(*) AS mutuals
+           FROM follows f1
+           JOIN follows f2 ON f2.follower_id = f1.followee_id
+          WHERE f1.follower_id = ?1
+            AND f2.followee_id <> ?1
+            AND f2.followee_id NOT IN (SELECT followee_id FROM follows WHERE follower_id = ?1)
+          GROUP BY f2.followee_id
+          ORDER BY mutuals DESC, uid DESC
+          LIMIT ?2`,
+      )
+      .bind(viewerId, limit)
+      .all<{ uid: string; mutuals: number }>();
+
+    const ordered: string[] = [];
+    const seen = new Set<string>([viewerId]);
+    for (const r of fof.results) {
+      if (!seen.has(r.uid)) { ordered.push(r.uid); seen.add(r.uid); }
+    }
+
+    // 2) Top up with popular creators the viewer doesn't already follow, so new
+    //    users (no social graph yet) still get strong suggestions.
+    if (ordered.length < limit) {
+      const popular = await this.db
+        .prepare(
+          `SELECT id AS uid FROM users
+            WHERE id <> ?1
+              AND id NOT IN (SELECT followee_id FROM follows WHERE follower_id = ?1)
+            ORDER BY followers_count DESC, beats_count DESC, id DESC
+            LIMIT ?2`,
+        )
+        .bind(viewerId, limit)
+        .all<{ uid: string }>();
+      for (const r of popular.results) {
+        if (ordered.length >= limit) break;
+        if (!seen.has(r.uid)) { ordered.push(r.uid); seen.add(r.uid); }
+      }
+    }
+
+    return ordered.slice(0, limit);
+  }
 }

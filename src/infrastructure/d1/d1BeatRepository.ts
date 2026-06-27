@@ -140,6 +140,45 @@ export class D1BeatRepository implements BeatRepository {
     return results.map(mapBeat);
   }
 
+  async listFollowingFeed(
+    viewerId: string,
+    cursor: string | null,
+    limit: number,
+  ): Promise<Beat[]> {
+    // Public beats from people the viewer follows, newest first (id is time-ordered).
+    const sql = cursor
+      ? `SELECT b.* FROM beats b
+           JOIN follows f ON f.followee_id = b.user_id
+          WHERE f.follower_id = ? AND b.visibility = 'public' AND b.id < ?
+          ORDER BY b.id DESC LIMIT ?`
+      : `SELECT b.* FROM beats b
+           JOIN follows f ON f.followee_id = b.user_id
+          WHERE f.follower_id = ? AND b.visibility = 'public'
+          ORDER BY b.id DESC LIMIT ?`;
+    const stmt = cursor
+      ? this.db.prepare(sql).bind(viewerId, cursor, limit)
+      : this.db.prepare(sql).bind(viewerId, limit);
+    const { results } = await stmt.all<BeatRow>();
+    return results.map(mapBeat);
+  }
+
+  async viewerGenreWeights(viewerId: string): Promise<Record<string, number>> {
+    // Genres the viewer engages with = genres of beats they made + beats they liked.
+    const { results } = await this.db
+      .prepare(
+        `SELECT genre, COUNT(*) AS n FROM (
+            SELECT genre FROM beats WHERE user_id = ?1
+            UNION ALL
+            SELECT b.genre FROM likes l JOIN beats b ON b.id = l.beat_id WHERE l.user_id = ?1
+         ) GROUP BY genre`,
+      )
+      .bind(viewerId)
+      .all<{ genre: string; n: number }>();
+    const weights: Record<string, number> = {};
+    for (const r of results) weights[r.genre] = r.n;
+    return weights;
+  }
+
   async incrementPlays(id: string): Promise<void> {
     await this.db
       .prepare("UPDATE beats SET plays_count = plays_count + 1 WHERE id = ?")
