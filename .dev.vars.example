@@ -1,0 +1,9 @@
+# Copy to `.dev.vars` for local `wrangler dev`. NEVER commit the real file.
+# Production: set these with `wrangler secret put <NAME>`.
+
+# HMAC signing key for access-token JWTs. Generate: openssl rand -hex 32
+JWT_SECRET="dev-only-change-me-to-a-long-random-string"
+
+# Google OAuth credentials (https://console.cloud.google.com/apis/credentials)
+GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"

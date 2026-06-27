@@ -1,0 +1,43 @@
+name = "loopflow-backend"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Observability — sampled logs so it stays cheap at very high request volume.
+[observability]
+enabled = true
+
+# ---------------------------------------------------------------------------
+# Public, non-secret configuration. Secrets (JWT_SECRET, GOOGLE_CLIENT_SECRET)
+# are set with `wrangler secret put <NAME>` and never committed.
+# ---------------------------------------------------------------------------
+[vars]
+ENVIRONMENT = "development"
+APP_ORIGIN = "http://localhost:8788"
+COOKIE_DOMAIN = ""
+ACCESS_TOKEN_TTL = "900"          # 15 minutes
+REFRESH_TOKEN_TTL = "2592000"     # 30 days
+GOOGLE_REDIRECT_URI = "http://localhost:8787/auth/google/callback"
+ASSET_PUBLIC_BASE = ""            # optional R2 public/CDN base URL for audio
+
+# D1 — relational source of truth (users, beats metadata, likes, follows).
+[[d1_databases]]
+binding = "DB"
+database_name = "loopflow"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# KV — globally-replicated, read-optimized. Refresh tokens + OAuth state.
+[[kv_namespaces]]
+binding = "TOKENS"
+id = "REPLACE_WITH_TOKENS_KV_ID"
+
+# KV — feed cache + rate-limit counters (hot reads served from the edge).
+[[kv_namespaces]]
+binding = "CACHE"
+id = "REPLACE_WITH_CACHE_KV_ID"
+
+# R2 — audio blobs (recordings, rendered exports). Scales without limits.
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "loopflow-assets"
