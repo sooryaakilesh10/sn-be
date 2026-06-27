@@ -76,13 +76,3 @@ CREATE TABLE follows (
   PRIMARY KEY (follower_id, followee_id)
 );
 CREATE INDEX idx_follows_followee ON follows (followee_id);
-
-CREATE TABLE assets (
-  id          TEXT PRIMARY KEY,   -- also the R2 object key
-  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  kind        TEXT NOT NULL,      -- 'voice' | 'piano' | 'chord' | 'export'
-  content_type TEXT NOT NULL,
-  size_bytes  INTEGER NOT NULL,
-  created_at  INTEGER NOT NULL
-);
-CREATE INDEX idx_assets_user ON assets (user_id, created_at DESC);

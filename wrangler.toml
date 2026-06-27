@@ -24,20 +24,56 @@ ASSET_PUBLIC_BASE = ""            # optional R2 public/CDN base URL for audio
 [[d1_databases]]
 binding = "DB"
 database_name = "loopflow"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "a91e62cc-170a-4cc6-b4b2-d4c63527d880"
 migrations_dir = "migrations"
 
 # KV — globally-replicated, read-optimized. Refresh tokens + OAuth state.
 [[kv_namespaces]]
 binding = "TOKENS"
-id = "REPLACE_WITH_TOKENS_KV_ID"
+id = "e73e0c23db6b4a0baec8664da2e81b56"
 
 # KV — feed cache + rate-limit counters (hot reads served from the edge).
 [[kv_namespaces]]
 binding = "CACHE"
-id = "REPLACE_WITH_CACHE_KV_ID"
+id = "40c45930e5524d5abc7ad162df982edc"
 
-# R2 — audio blobs (recordings, rendered exports). Scales without limits.
-[[r2_buckets]]
-binding = "ASSETS"
-bucket_name = "loopflow-assets"
+# ===========================================================================
+# PRODUCTION environment — this is what CI deploys (`wrangler deploy --env
+# production`). Named environments do NOT inherit top-level [vars] or bindings,
+# so everything the Worker needs is redeclared here.
+#
+# Before the first deploy, replace the three values marked >>> EDIT <<< :
+#   1. APP_ORIGIN          — your deployed Cloudflare Pages URL
+#   2. GOOGLE_REDIRECT_URI — your deployed Worker URL + /auth/google/callback
+#   3. the database_id / KV ids / (bucket name is fine as-is)
+# and register the same GOOGLE_REDIRECT_URI in the Google Cloud OAuth console.
+# ===========================================================================
+[env.production]
+name = "loopflow-backend"
+
+[env.production.observability]
+enabled = true
+
+[env.production.vars]
+ENVIRONMENT = "production"
+APP_ORIGIN = "https://loopflow-avl.pages.dev"     # deployed Pages site URL (frontend origin)
+COOKIE_DOMAIN = ""                               # host-only cookies on the Worker domain
+COOKIE_SAMESITE = "None"                          # cross-site (pages.dev → workers.dev) needs None+Secure
+ACCESS_TOKEN_TTL = "900"
+REFRESH_TOKEN_TTL = "2592000"
+GOOGLE_REDIRECT_URI = "https://loopflow-backend.csasoorya10.workers.dev/auth/google/callback"
+ASSET_PUBLIC_BASE = ""
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "loopflow"
+database_id = "a91e62cc-170a-4cc6-b4b2-d4c63527d880"      # >>> EDIT <<<
+migrations_dir = "migrations"
+
+[[env.production.kv_namespaces]]
+binding = "TOKENS"
+id = "e73e0c23db6b4a0baec8664da2e81b56"                 # >>> EDIT <<<
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "40c45930e5524d5abc7ad162df982edc"                  # >>> EDIT <<<

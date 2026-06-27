@@ -119,15 +119,4 @@ export const api = {
     follow: (id) => request("POST", `/api/users/${id}/follow`),
     unfollow: (id) => request("DELETE", `/api/users/${id}/follow`),
   },
-
-  assets: {
-    // blob: Blob/ArrayBuffer of recorded audio; kind: voice|piano|chord|export
-    async upload(blob, kind) {
-      const contentType = blob.type || "audio/webm";
-      const d = await request("POST", "/api/assets", { query: { kind }, raw: blob, contentType });
-      return d.asset;
-    },
-    url: (id) => `${config.baseUrl}/api/assets/${id}`,
-    remove: (id) => request("DELETE", `/api/assets/${id}`),
-  },
 };

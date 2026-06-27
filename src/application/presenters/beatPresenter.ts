@@ -13,7 +13,7 @@ export function authorFromUser(user: User): BeatAuthor {
 export interface PresentOptions {
   author: BeatAuthor;
   likedByViewer: boolean;
-  // Public base URL for serving R2 audio; falls back to the API asset route.
+  // Optional external CDN base URL for serving preview audio. Empty = no preview.
   assetBase: string;
   includeDocument?: boolean;
 }
@@ -29,7 +29,7 @@ export function presentBeat(beat: Beat, opts: PresentOptions): BeatView {
     likesCount: beat.likesCount,
     playsCount: beat.playsCount,
     remixOf: beat.remixOf,
-    previewUrl: beat.previewAsset ? assetUrl(opts.assetBase, beat.previewAsset) : null,
+    previewUrl: beat.previewAsset && opts.assetBase ? assetUrl(opts.assetBase, beat.previewAsset) : null,
     author: opts.author,
     likedByViewer: opts.likedByViewer,
     createdAt: beat.createdAt,
@@ -40,6 +40,5 @@ export function presentBeat(beat: Beat, opts: PresentOptions): BeatView {
 }
 
 function assetUrl(base: string, key: string): string {
-  if (base) return `${base.replace(/\/$/, "")}/${key}`;
-  return `/api/assets/${key}`;
+  return `${base.replace(/\/$/, "")}/${key}`;
 }

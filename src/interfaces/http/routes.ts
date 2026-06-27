@@ -4,7 +4,6 @@ import { beatController } from "./controllers/beatController.js";
 import { feedController } from "./controllers/feedController.js";
 import { socialController } from "./controllers/socialController.js";
 import { userController } from "./controllers/userController.js";
-import { assetController } from "./controllers/assetController.js";
 import { json } from "./response.js";
 
 // Single source of truth for the HTTP surface. Built once and reused across
@@ -43,11 +42,6 @@ export function buildRouter(): Router {
   r.get("/api/users/:username", userController.profile);
   r.post("/api/users/:id/follow", socialController.follow);
   r.delete("/api/users/:id/follow", socialController.unfollow);
-
-  // --- Audio assets ---
-  r.post("/api/assets", assetController.upload);
-  r.get("/api/assets/:id", assetController.download);
-  r.delete("/api/assets/:id", assetController.remove);
 
   return r;
 }

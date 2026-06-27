@@ -1,0 +1,59 @@
+name: Deploy Backend (Cloudflare Workers)
+
+# Typechecks, tests, applies pending D1 migrations, then deploys the Worker.
+# Requires two repository secrets (Settings → Secrets and variables → Actions):
+#   - CLOUDFLARE_API_TOKEN   (token with "Workers Scripts: Edit" + "D1: Edit")
+#   - CLOUDFLARE_ACCOUNT_ID  (your Cloudflare account ID)
+#
+# Note: wrangler.toml must contain the real database_id / KV namespace ids
+# (not the REPLACE_WITH_* placeholders) for the migration + deploy steps to work.
+# App secrets (JWT_SECRET, GOOGLE_CLIENT_SECRET) are set once via
+# `wrangler secret put <NAME>` — never in CI.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Apply D1 migrations (remote)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply loopflow --env production --remote
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env production

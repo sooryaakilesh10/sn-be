@@ -30,14 +30,18 @@ export interface CookieOptions {
 }
 
 export function serializeCookie(name: string, value: string, opts: CookieOptions): string {
+  const sameSite = opts.config.cookieSameSite;
+  // SameSite=None (required when the SPA and API are on different sites, e.g.
+  // *.pages.dev calling *.workers.dev) is only honored by browsers with Secure.
+  const secure = opts.config.isProduction || sameSite.toLowerCase() === "none";
   const parts = [
     `${name}=${value}`,
     `Path=${opts.path ?? "/"}`,
     `Max-Age=${opts.maxAge}`,
     "HttpOnly",
-    "SameSite=Lax",
+    `SameSite=${sameSite}`,
   ];
-  if (opts.config.isProduction) parts.push("Secure");
+  if (secure) parts.push("Secure");
   if (opts.config.cookieDomain) parts.push(`Domain=${opts.config.cookieDomain}`);
   return parts.join("; ");
 }

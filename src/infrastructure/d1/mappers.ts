@@ -1,6 +1,5 @@
 import type { User } from "../../domain/entities/user.js";
 import type { Beat, Genre, Visibility } from "../../domain/entities/beat.js";
-import type { Asset, AssetKind } from "../../domain/entities/asset.js";
 
 // Raw row shapes as returned by D1 (snake_case, SQLite scalar types).
 
@@ -36,15 +35,6 @@ export interface BeatRow {
   updated_at: number;
 }
 
-export interface AssetRow {
-  id: string;
-  user_id: string;
-  kind: string;
-  content_type: string;
-  size_bytes: number;
-  created_at: number;
-}
-
 export function mapUser(r: UserRow): User {
   return {
     id: r.id,
@@ -78,17 +68,6 @@ export function mapBeat(r: BeatRow): Beat {
     previewAsset: r.preview_asset,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
-  };
-}
-
-export function mapAsset(r: AssetRow): Asset {
-  return {
-    id: r.id,
-    userId: r.user_id,
-    kind: r.kind as AssetKind,
-    contentType: r.content_type,
-    sizeBytes: r.size_bytes,
-    createdAt: r.created_at,
   };
 }
 

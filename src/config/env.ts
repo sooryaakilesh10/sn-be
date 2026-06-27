@@ -6,12 +6,12 @@ export interface Env {
   DB: D1Database;
   TOKENS: KVNamespace;
   CACHE: KVNamespace;
-  ASSETS: R2Bucket;
 
   // --- vars ---
   ENVIRONMENT: string;
   APP_ORIGIN: string;
   COOKIE_DOMAIN: string;
+  COOKIE_SAMESITE: string;
   ACCESS_TOKEN_TTL: string;
   REFRESH_TOKEN_TTL: string;
   GOOGLE_REDIRECT_URI: string;
@@ -27,6 +27,7 @@ export interface AppConfig {
   environment: string;
   appOrigin: string;
   cookieDomain: string | undefined;
+  cookieSameSite: string;
   accessTtl: number;
   refreshTtl: number;
   oauthStateTtl: number;
@@ -54,6 +55,9 @@ export function loadConfig(env: Env): AppConfig {
     environment: env.ENVIRONMENT || "development",
     appOrigin: env.APP_ORIGIN || "http://localhost:8788",
     cookieDomain: env.COOKIE_DOMAIN || undefined,
+    // "Lax" for same-site/local dev; "None" when the SPA is on a different
+    // site than the API (cross-site cookies). Set via COOKIE_SAMESITE.
+    cookieSameSite: env.COOKIE_SAMESITE || "Lax",
     accessTtl: int(env.ACCESS_TOKEN_TTL, 900),
     refreshTtl: int(env.REFRESH_TOKEN_TTL, 2_592_000),
     oauthStateTtl: 600,
