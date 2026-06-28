@@ -31,6 +31,7 @@ export interface Beat {
   visibility: Visibility;
   likesCount: number;
   playsCount: number;
+  commentsCount: number;
   remixOf: string | null;
   document: BeatDocument;
   previewAsset: string | null;
@@ -57,6 +58,7 @@ export interface BeatView {
   visibility: Visibility;
   likesCount: number;
   playsCount: number;
+  commentsCount: number;
   remixOf: string | null;
   previewUrl: string | null;
   author: BeatAuthor;

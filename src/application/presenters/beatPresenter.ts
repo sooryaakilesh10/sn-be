@@ -28,6 +28,7 @@ export function presentBeat(beat: Beat, opts: PresentOptions): BeatView {
     visibility: beat.visibility,
     likesCount: beat.likesCount,
     playsCount: beat.playsCount,
+    commentsCount: beat.commentsCount,
     remixOf: beat.remixOf,
     previewUrl: beat.previewAsset && opts.assetBase ? assetUrl(opts.assetBase, beat.previewAsset) : null,
     author: opts.author,

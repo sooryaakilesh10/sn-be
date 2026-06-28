@@ -114,6 +114,14 @@ export const api = {
     discover: (opts = {}) => request("GET", "/api/feed", { query: opts }),
   },
 
+  comments: {
+    // Newest-first page of comments on a beat: { items, nextCursor }.
+    list: (beatId, opts = {}) => request("GET", `/api/beats/${beatId}/comments`, { query: opts }),
+    add: (beatId, body) =>
+      request("POST", `/api/beats/${beatId}/comments`, { body: { body } }).then((d) => d.comment),
+    remove: (id) => request("DELETE", `/api/comments/${id}`),
+  },
+
   users: {
     profile: (username) => request("GET", `/api/users/${username}`).then((d) => d.user),
     follow: (id) => request("POST", `/api/users/${id}/follow`),

@@ -3,6 +3,7 @@ import type { Env, AppConfig } from "./config/env.js";
 import { D1UserRepository } from "./infrastructure/d1/d1UserRepository.js";
 import { D1BeatRepository } from "./infrastructure/d1/d1BeatRepository.js";
 import { D1SocialRepository } from "./infrastructure/d1/d1SocialRepository.js";
+import { D1CommentRepository } from "./infrastructure/d1/d1CommentRepository.js";
 import { KvCache } from "./infrastructure/kv/kvCache.js";
 import { KvRateLimiter } from "./infrastructure/kv/kvRateLimiter.js";
 import {
@@ -16,6 +17,7 @@ import { AuthService } from "./application/services/authService.js";
 import { BeatService } from "./application/services/beatService.js";
 import { FeedService } from "./application/services/feedService.js";
 import { SocialService } from "./application/services/socialService.js";
+import { CommentService } from "./application/services/commentService.js";
 import { UserService } from "./application/services/userService.js";
 import { RecommendationService } from "./application/services/recommendationService.js";
 import type { TokenSigner } from "./application/ports/tokenSigner.js";
@@ -28,6 +30,7 @@ export interface Container {
   beats: BeatService;
   feed: FeedService;
   social: SocialService;
+  comments: CommentService;
   users: UserService;
   recommendations: RecommendationService;
   tokenSigner: TokenSigner;
@@ -39,6 +42,7 @@ export function buildContainer(env: Env, config: AppConfig): Container {
   const userRepo = new D1UserRepository(env.DB);
   const beatRepo = new D1BeatRepository(env.DB);
   const socialRepo = new D1SocialRepository(env.DB);
+  const commentRepo = new D1CommentRepository(env.DB);
   const cache = new KvCache(env.CACHE);
   const rateLimiter = new KvRateLimiter(env.CACHE);
   const refreshStore = new KvRefreshTokenStore(env.TOKENS);
@@ -56,8 +60,9 @@ export function buildContainer(env: Env, config: AppConfig): Container {
   const beats = new BeatService(beatRepo, userRepo, socialRepo, cache, config.assetPublicBase);
   const feed = new FeedService(beatRepo, userRepo, socialRepo, cache, config.assetPublicBase);
   const social = new SocialService(socialRepo, beatRepo, userRepo, cache);
+  const comments = new CommentService(commentRepo, beatRepo, userRepo);
   const users = new UserService(userRepo, socialRepo);
   const recommendations = new RecommendationService(socialRepo, userRepo);
 
-  return { auth, beats, feed, social, users, recommendations, tokenSigner, rateLimiter };
+  return { auth, beats, feed, social, comments, users, recommendations, tokenSigner, rateLimiter };
 }
