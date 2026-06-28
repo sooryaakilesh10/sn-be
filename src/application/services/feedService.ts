@@ -88,13 +88,14 @@ export class FeedService {
 
     const viewerId = req.viewerId;
     const authorIds = [...new Set(pool.beats.map((b) => b.userId))];
-    const followed = viewerId
-      ? await this.social.followingAmong(viewerId, authorIds)
-      : new Set<string>();
-    const liked = viewerId
-      ? await this.social.likedBeatIds(viewerId, pool.beats.map((b) => b.id))
-      : new Set<string>();
-    const genreWeights = viewerId ? await this.beats.viewerGenreWeights(viewerId) : {};
+    // These three reads are independent — run them concurrently to cut latency.
+    const [followed, liked, genreWeights] = await Promise.all([
+      viewerId ? this.social.followingAmong(viewerId, authorIds) : Promise.resolve(new Set<string>()),
+      viewerId
+        ? this.social.likedBeatIds(viewerId, pool.beats.map((b) => b.id))
+        : Promise.resolve(new Set<string>()),
+      viewerId ? this.beats.viewerGenreWeights(viewerId) : Promise.resolve({} as Record<string, number>),
+    ]);
     const maxGenre = Math.max(1, ...Object.values(genreWeights));
 
     const authorMap = new Map(pool.authors.map((a) => [a.id, a]));
@@ -119,10 +120,13 @@ export class FeedService {
   // Hydrate a plain list of beats with authors + the viewer's like state.
   private async hydrate(beats: Beat[], viewerId: string | null): Promise<BeatView[]> {
     const authorIds = [...new Set(beats.map((b) => b.userId))];
-    const authorMap = await this.users.findManyByIds(authorIds);
-    const liked = viewerId
-      ? await this.social.likedBeatIds(viewerId, beats.map((b) => b.id))
-      : new Set<string>();
+    // Authors and the viewer's like state are independent — fetch in parallel.
+    const [authorMap, liked] = await Promise.all([
+      this.users.findManyByIds(authorIds),
+      viewerId
+        ? this.social.likedBeatIds(viewerId, beats.map((b) => b.id))
+        : Promise.resolve(new Set<string>()),
+    ]);
     return beats.flatMap((beat) => {
       const author = authorMap.get(beat.userId);
       if (!author) return [];

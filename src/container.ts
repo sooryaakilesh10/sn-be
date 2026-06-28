@@ -62,7 +62,7 @@ export function buildContainer(env: Env, config: AppConfig): Container {
   const social = new SocialService(socialRepo, beatRepo, userRepo, cache);
   const comments = new CommentService(commentRepo, beatRepo, userRepo);
   const users = new UserService(userRepo, socialRepo);
-  const recommendations = new RecommendationService(socialRepo, userRepo);
+  const recommendations = new RecommendationService(socialRepo, userRepo, cache);
 
   return { auth, beats, feed, social, comments, users, recommendations, tokenSigner, rateLimiter };
 }
