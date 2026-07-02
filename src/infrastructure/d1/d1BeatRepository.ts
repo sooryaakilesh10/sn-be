@@ -19,6 +19,18 @@ export class D1BeatRepository implements BeatRepository {
     return row ? mapBeat(row) : null;
   }
 
+  async findManyByIds(ids: string[]): Promise<Map<string, Beat>> {
+    const map = new Map<string, Beat>();
+    if (ids.length === 0) return map;
+    const placeholders = ids.map(() => "?").join(",");
+    const { results } = await this.db
+      .prepare(`SELECT * FROM beats WHERE id IN (${placeholders})`)
+      .bind(...ids)
+      .all<BeatRow>();
+    for (const row of results) map.set(row.id, mapBeat(row));
+    return map;
+  }
+
   async create(beat: NewBeat): Promise<Beat> {
     const now = Date.now();
     // Atomic: insert the beat and bump the author's denormalized counter

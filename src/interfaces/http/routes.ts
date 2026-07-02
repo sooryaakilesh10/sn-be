@@ -6,6 +6,7 @@ import { socialController } from "./controllers/socialController.js";
 import { commentController } from "./controllers/commentController.js";
 import { userController } from "./controllers/userController.js";
 import { recommendationController } from "./controllers/recommendationController.js";
+import { challengeController } from "./controllers/challengeController.js";
 import { json } from "./response.js";
 
 // Single source of truth for the HTTP surface. Built once and reused across
@@ -47,6 +48,14 @@ export function buildRouter(): Router {
 
   // --- Recommendations ---
   r.get("/api/recommendations/users", recommendationController.users);
+
+  // --- Daily Beat Challenge ---
+  r.get("/api/challenges/today", challengeController.today);
+  r.get("/api/challenges/today/leaderboard", challengeController.leaderboard);
+  r.post("/api/challenges/today/entries", challengeController.submit);
+  r.delete("/api/challenges/today/entry", challengeController.withdraw);
+  r.post("/api/challenges/entries/:id/like", challengeController.like);
+  r.delete("/api/challenges/entries/:id/like", challengeController.unlike);
 
   // --- Users / social ---
   r.get("/api/users/:username", userController.profile);

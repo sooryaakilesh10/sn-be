@@ -33,6 +33,9 @@ export interface FeedQuery {
 
 export interface BeatRepository {
   findById(id: string): Promise<Beat | null>;
+  // Bulk lookup used to hydrate a set of beats (e.g. a challenge leaderboard)
+  // without an N+1 fan-out.
+  findManyByIds(ids: string[]): Promise<Map<string, Beat>>;
   // Creating a beat also bumps the author's denormalized beats_count.
   create(beat: NewBeat): Promise<Beat>;
   update(id: string, patch: BeatPatch): Promise<Beat>;

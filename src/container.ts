@@ -4,6 +4,7 @@ import { D1UserRepository } from "./infrastructure/d1/d1UserRepository.js";
 import { D1BeatRepository } from "./infrastructure/d1/d1BeatRepository.js";
 import { D1SocialRepository } from "./infrastructure/d1/d1SocialRepository.js";
 import { D1CommentRepository } from "./infrastructure/d1/d1CommentRepository.js";
+import { D1ChallengeRepository } from "./infrastructure/d1/d1ChallengeRepository.js";
 import { KvCache } from "./infrastructure/kv/kvCache.js";
 import { KvRateLimiter } from "./infrastructure/kv/kvRateLimiter.js";
 import {
@@ -20,6 +21,7 @@ import { SocialService } from "./application/services/socialService.js";
 import { CommentService } from "./application/services/commentService.js";
 import { UserService } from "./application/services/userService.js";
 import { RecommendationService } from "./application/services/recommendationService.js";
+import { ChallengeService } from "./application/services/challengeService.js";
 import type { TokenSigner } from "./application/ports/tokenSigner.js";
 import type { RateLimiter } from "./domain/repositories/rateLimiter.js";
 
@@ -33,6 +35,7 @@ export interface Container {
   comments: CommentService;
   users: UserService;
   recommendations: RecommendationService;
+  challenges: ChallengeService;
   tokenSigner: TokenSigner;
   rateLimiter: RateLimiter;
 }
@@ -43,6 +46,7 @@ export function buildContainer(env: Env, config: AppConfig): Container {
   const beatRepo = new D1BeatRepository(env.DB);
   const socialRepo = new D1SocialRepository(env.DB);
   const commentRepo = new D1CommentRepository(env.DB);
+  const challengeRepo = new D1ChallengeRepository(env.DB);
   const cache = new KvCache(env.CACHE);
   const rateLimiter = new KvRateLimiter(env.CACHE);
   const refreshStore = new KvRefreshTokenStore(env.TOKENS);
@@ -63,6 +67,18 @@ export function buildContainer(env: Env, config: AppConfig): Container {
   const comments = new CommentService(commentRepo, beatRepo, userRepo);
   const users = new UserService(userRepo, socialRepo);
   const recommendations = new RecommendationService(socialRepo, userRepo, cache);
+  const challenges = new ChallengeService(challengeRepo, beatRepo, userRepo, config.assetPublicBase);
 
-  return { auth, beats, feed, social, comments, users, recommendations, tokenSigner, rateLimiter };
+  return {
+    auth,
+    beats,
+    feed,
+    social,
+    comments,
+    users,
+    recommendations,
+    challenges,
+    tokenSigner,
+    rateLimiter,
+  };
 }

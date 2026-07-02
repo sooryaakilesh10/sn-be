@@ -127,4 +127,19 @@ export const api = {
     follow: (id) => request("POST", `/api/users/${id}/follow`),
     unfollow: (id) => request("DELETE", `/api/users/${id}/follow`),
   },
+
+  challenges: {
+    // Today's challenge + the viewer's own entry (if any): { challenge }.
+    today: () => request("GET", "/api/challenges/today").then((d) => d.challenge),
+    // Today's ranked entries: { challenge, entries }.
+    leaderboard: () => request("GET", "/api/challenges/today/leaderboard"),
+    // Submit one of your beats to today's challenge → the created entry view.
+    submit: (beatId) =>
+      request("POST", "/api/challenges/today/entries", { body: { beatId } }).then((d) => d.entry),
+    // Withdraw your submission from today's challenge.
+    withdraw: () => request("DELETE", "/api/challenges/today/entry"),
+    // Like / unlike an entry (challenge-scoped): { liked, likesCount }.
+    like: (entryId) => request("POST", `/api/challenges/entries/${entryId}/like`),
+    unlike: (entryId) => request("DELETE", `/api/challenges/entries/${entryId}/like`),
+  },
 };

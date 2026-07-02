@@ -1,6 +1,7 @@
 import type { User } from "../../domain/entities/user.js";
 import type { Beat, Genre, Visibility } from "../../domain/entities/beat.js";
 import type { Comment } from "../../domain/entities/comment.js";
+import type { ChallengeEntry } from "../../domain/entities/challenge.js";
 
 // Raw row shapes as returned by D1 (snake_case, SQLite scalar types).
 
@@ -42,6 +43,15 @@ export interface CommentRow {
   beat_id: string;
   user_id: string;
   body: string;
+  created_at: number;
+}
+
+export interface ChallengeEntryRow {
+  id: string;
+  challenge_id: string;
+  user_id: string;
+  beat_id: string;
+  likes_count: number;
   created_at: number;
 }
 
@@ -88,6 +98,17 @@ export function mapComment(r: CommentRow): Comment {
     beatId: r.beat_id,
     userId: r.user_id,
     body: r.body,
+    createdAt: r.created_at,
+  };
+}
+
+export function mapChallengeEntry(r: ChallengeEntryRow): ChallengeEntry {
+  return {
+    id: r.id,
+    challengeId: r.challenge_id,
+    userId: r.user_id,
+    beatId: r.beat_id,
+    likesCount: r.likes_count,
     createdAt: r.created_at,
   };
 }
